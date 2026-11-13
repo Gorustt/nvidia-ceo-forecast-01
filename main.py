@@ -3,7 +3,7 @@
 Model (per market, fitted only on the case's own price history):
   - Two-component normal mixture for the h-step-ahead price:
       * core: an Ornstein-Uhlenbeck (mean-reverting) component. Its 1-minute
-        sigma is the std of non-jump returns over the last 2h; its variance
+        sigma is the std of non-jump returns over the last 60 min; its variance
         saturates with horizon (half-life 60 min) instead of growing like a
         random walk, because these prices are strongly mean-reverting.
       * news: a wide component centred on the last price, whose sigma is the
@@ -12,10 +12,10 @@ Model (per market, fitted only on the case's own price history):
         last 4h (moves > 0.02 count as jumps).
   - Median stays at the last price (no drift: momentum was tested and hurts).
   - Medians are shrunk slightly toward a sum of 1.0 across markets (the
-    event's probabilities must sum to ~1; shift capped at 0.012 per market).
+    event's probabilities must sum to ~1; shift capped at 0.016 per market).
 
 Tuned on the 6 practice cases against live Polymarket answers:
-  pooled pinball loss 0.269477 vs house baseline 0.3636 (practice board #1: 0.251).
+  pooled pinball loss 0.265396 vs house baseline 0.3636 (practice board #1: 0.251).
 Stdlib only, deterministic, no network, no randomness.
 """
 import json, math, os, sys
@@ -32,11 +32,11 @@ DEFAULTS = dict(
     p_prior_n=500,      # Beta prior strength (pseudo-minutes)
     sq_floor=0.0003,    # floor on core 1-min sigma
     sq_cap=0.01,        # cap on core 1-min sigma
-    sq_win=90,            # minutes for core-sigma estimation (0 = same as window)
+    sq_win=60,            # minutes for core-sigma estimation (0 = same as window)
     hl=60,              # mean-reversion half-life (minutes) for the core; 0 = no saturation
     news_win=240,      # minutes for the news-size estimate
     news_cap=0.04,      # cap on news sigma
-    news_floor=0.02,    # floor on news sigma
+    news_floor=0.03,    # floor on news sigma
     w_cap=0.6,          # cap on the news weight w(h)
     drift_win=0,        # minutes for drift estimation (0 = no drift)
     drift_shrink=0.0,
@@ -45,7 +45,7 @@ DEFAULTS = dict(
     level_hl=0,         # half-life (min) for the center gliding x -> recent mean; 0 = off
     sum1=True,
     sum1_target=1.0,
-    sum1_max_shift=0.012,
+    sum1_max_shift=0.016,
     asym=False,         # split-normal (separate up/down scales) for core+news
     hot_boost=0.0,      # extra news weight multiplier when a jump hit in last 60 min
 )
